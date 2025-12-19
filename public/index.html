@@ -1,67 +1,95 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
-    <script defer src="/__/firebase/12.7.0/firebase-app-compat.js"></script>
-    <script defer src="/__/firebase/12.7.0/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/12.7.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/12.7.0/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/12.7.0/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/12.7.0/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/12.7.0/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/12.7.0/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/12.7.0/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/12.7.0/firebase-performance-compat.js"></script>
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minesweeper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
+<div class="game-container">
+  <div class="header">
+    <div class="stat-box" id="mineCount">💣 0</div>
+    <div class="controls">
+      <select id="difficulty">
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+        <option value="custom">Custom</option>
+      </select>
+      <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">🌗</button>
+      <button class="icon-btn" onclick="useHint()" title="Use Hint" id="hintBtn">💡 3</button>
+      <button class="icon-btn" onclick="showLeaderboard()" title="Leaderboard">🏆</button>
     </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
+    <div class="stat-box" id="timer">00:00</div>
+  </div>
+  
+  <div class="grid" id="grid"></div>
+  
+  <div class="header">
+    <div id="best"></div>
+    <button class="primary" onclick="restartGame()">Restart</button>
+  </div>
+  
+  <div class="keybinds">
+    <span><kbd>R</kbd> Restart</span>
+    <span><kbd>H</kbd> Hint</span>
+    <span><kbd>T</kbd> Theme</span>
+  </div>
+</div>
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
-        }
-      });
-    </script>
-  </body>
+<div id="overlay" class="overlay">
+  <div class="modal">
+    <h2 id="modalTitle"></h2>
+    <p id="modalText"></p>
+    <button class="primary" onclick="restartGame()">Play Again</button>
+  </div>
+</div>
+
+<div id="customModalOverlay" class="overlay">
+  <div class="modal">
+    <h2>Custom Game</h2>
+    <div class="input-group">
+      <label>Rows: <input type="number" id="customR" value="20" min="5" max="50"></label>
+      <label>Cols: <input type="number" id="customC" value="30" min="5" max="50"></label>
+      <label>Mines: <input type="number" id="customM" value="50" min="1"></label>
+    </div>
+    <button class="primary" onclick="applyCustom()">Start</button>
+    <button class="icon-btn" onclick="cancelCustom()" style="margin-left:8px">✕</button>
+  </div>
+</div>
+
+<div id="nameModalOverlay" class="overlay">
+  <div class="modal win">
+    <h2>🎉 New High Score!</h2>
+    <p>Enter your name for the leaderboard:</p>
+    <div class="input-group">
+      <input type="text" id="playerName" placeholder="Your Name" maxlength="20" style="width:100%">
+    </div>
+    <button class="primary" onclick="submitScore()">Submit</button>
+    <button class="icon-btn" onclick="closeNameModal()" style="margin-left:8px">✕</button>
+  </div>
+</div>
+
+<div id="leaderboardOverlay" class="overlay">
+  <div class="modal" style="width:400px">
+    <h2>🏆 Leaderboard</h2>
+    <div class="leaderboard-tabs">
+      <button class="tab-btn active" data-diff="easy">Easy</button>
+      <button class="tab-btn" data-diff="medium">Medium</button>
+      <button class="tab-btn" data-diff="hard">Hard</button>
+    </div>
+    <div id="leaderboardList" class="leaderboard-list">
+      <p>Loading...</p>
+    </div>
+    <button class="primary" onclick="closeLeaderboard()">Close</button>
+  </div>
+</div>
+
+<script type="module" src="main.js"></script>
+</body>
 </html>

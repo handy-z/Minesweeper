@@ -1,0 +1,17 @@
+{
+  "name": "minesweeper",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun build ./src/main.ts --outdir ./public --watch",
+    "build": "bun build ./src/main.ts --outdir ./public --minify",
+    "serve": "bunx live-server ./public"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/bun": "latest"
+  },
+  "dependencies": {
+    "firebase": "^12.7.0"
+  }
+}
