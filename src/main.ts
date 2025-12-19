@@ -14,6 +14,7 @@ declare global {
     submitScore: () => void;
     closeNameModal: () => void;
     toggleSound: () => void;
+    toggleFlagMode: () => void;
   }
 }
 
@@ -27,5 +28,6 @@ window.closeLeaderboard = () => game.closeLeaderboard();
 window.submitScore = () => game.submitScoreHandler();
 window.closeNameModal = () => game.closeNameModal();
 window.toggleSound = () => game.toggleSound();
+window.toggleFlagMode = () => game.toggleFlagMode();
 
 document.getElementById('difficulty')?.addEventListener('change', () => game.restart());

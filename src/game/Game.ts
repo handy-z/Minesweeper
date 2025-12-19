@@ -24,6 +24,7 @@ export class Game {
   private modalText: HTMLElement;
   private bestEl: HTMLElement;
   private soundBtn: HTMLButtonElement;
+  private flagBtn: HTMLButtonElement;
 
   private grid: Cell[][] = [];
   private R: number = 9;
@@ -41,6 +42,7 @@ export class Game {
   private isLeftDown: boolean = false;
   private isRightDown: boolean = false;
   private soundManager: SoundManager;
+  private flagMode: boolean = false;
 
   constructor() {
     this.soundManager = new SoundManager();
@@ -64,6 +66,7 @@ export class Game {
     this.modalText = document.getElementById("modalText")!;
     this.bestEl = document.getElementById("best")!;
     this.soundBtn = document.getElementById("soundBtn") as HTMLButtonElement;
+    this.flagBtn = document.getElementById("flagBtn") as HTMLButtonElement;
 
     this.loadTheme();
     this.updateBest();
@@ -73,7 +76,13 @@ export class Game {
 
   toggleSound(): void {
     const enabled = this.soundManager.toggle();
-    this.soundBtn.innerText = enabled ? "🔊" : "🔇";
+    this.soundBtn.innerText = enabled ? '🔊' : '🔇';
+  }
+
+  toggleFlagMode(): void {
+    this.flagMode = !this.flagMode;
+    this.flagBtn.classList.toggle("active", this.flagMode);
+    this.soundManager.playClick();
   }
 
   private setupGlobalEvents(): void {
@@ -152,6 +161,8 @@ export class Game {
     }
 
     this.flags = 0;
+    this.flagMode = false;
+    this.flagBtn.classList.remove("active");
     this.hints = HINTS_PER_GAME;
     this.updateMineCount();
     this.updateHintCount();
@@ -170,7 +181,11 @@ export class Game {
 
         el.addEventListener("mousedown", (e) => {
           if (e.button === 0) {
-            this.handleClick(cell);
+            if (this.flagMode) {
+              this.toggleFlag(cell);
+            } else {
+              this.handleClick(cell);
+            }
           } else if (e.button === 2) {
             e.preventDefault();
             this.toggleFlag(cell);
@@ -179,7 +194,7 @@ export class Game {
 
         el.addEventListener("mouseenter", () => {
           if (this.isLeftDown) {
-            this.handleClick(cell);
+            if (!this.flagMode) this.handleClick(cell);
           } else if (this.isRightDown) {
             if (!cell.revealed && !cell.flagged) {
               this.toggleFlag(cell);
@@ -188,10 +203,30 @@ export class Game {
         });
 
         let pressTimer: ReturnType<typeof setTimeout>;
-        el.addEventListener("touchstart", () => {
-          pressTimer = setTimeout(() => this.toggleFlag(cell), 500);
+        el.addEventListener(
+          "touchstart",
+          (e) => {
+            if (this.flagMode) {
+              e.preventDefault(); // Prevent ghost mouse clicks
+              this.toggleFlag(cell);
+              return;
+            }
+            pressTimer = setTimeout(() => {
+              this.toggleFlag(cell);
+              navigator.vibrate?.(50); // Haptic feedback
+            }, 500);
+          },
+          { passive: false }
+        );
+
+        el.addEventListener("touchend", (e) => {
+          clearTimeout(pressTimer);
+          if (this.flagMode) return;
+          // If no scroll/move happened and valid tap
+          // Note: simple implementation, relying on standard click for normal reveal
+          // or could implement custom tap logic if needed.
+          // For now, let's keep the standard click firing after touchend unless we prevented default.
         });
-        el.addEventListener("touchend", () => clearTimeout(pressTimer));
 
         el.addEventListener("dblclick", () => this.tryChord(cell));
 
