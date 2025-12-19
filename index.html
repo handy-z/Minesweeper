@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minesweeper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="game-container">
+  <div class="header">
+    <div class="stat-box" id="mineCount">💣 0</div>
+    <div class="controls">
+      <select id="difficulty">
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+        <option value="custom">Custom</option>
+      </select>
+      <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">🌗</button>
+      <button class="icon-btn" onclick="useHint()" title="Use Hint" id="hintBtn">💡 3</button>
+      <button class="icon-btn" onclick="showLeaderboard()" title="Leaderboard">🏆</button>
+    </div>
+    <div class="stat-box" id="timer">00:00</div>
+  </div>
+  
+  <div class="grid" id="grid"></div>
+  
+  <div class="header">
+    <div id="best"></div>
+    <button class="primary" onclick="restartGame()">Restart</button>
+  </div>
+</div>
+
+<div id="overlay" class="overlay">
+  <div class="modal">
+    <h2 id="modalTitle"></h2>
+    <p id="modalText"></p>
+    <button class="primary" onclick="restartGame()">Play Again</button>
+  </div>
+</div>
+
+<div id="customModalOverlay" class="overlay">
+  <div class="modal">
+    <h2>Custom Game</h2>
+    <div class="input-group">
+      <label>Rows: <input type="number" id="customR" value="20" min="5" max="50"></label>
+      <label>Cols: <input type="number" id="customC" value="30" min="5" max="50"></label>
+      <label>Mines: <input type="number" id="customM" value="50" min="1"></label>
+    </div>
+    <button class="primary" onclick="applyCustom()">Start</button>
+    <button class="icon-btn" onclick="cancelCustom()" style="margin-left:8px">✕</button>
+  </div>
+</div>
+
+<div id="nameModalOverlay" class="overlay">
+  <div class="modal win">
+    <h2>🎉 New High Score!</h2>
+    <p>Enter your name for the leaderboard:</p>
+    <div class="input-group">
+      <input type="text" id="playerName" placeholder="Your Name" maxlength="20" style="width:100%">
+    </div>
+    <button class="primary" onclick="submitScore()">Submit</button>
+    <button class="icon-btn" onclick="closeNameModal()" style="margin-left:8px">✕</button>
+  </div>
+</div>
+
+<div id="leaderboardOverlay" class="overlay">
+  <div class="modal" style="width:400px">
+    <h2>🏆 Leaderboard</h2>
+    <div class="leaderboard-tabs">
+      <button class="tab-btn active" data-diff="easy">Easy</button>
+      <button class="tab-btn" data-diff="medium">Medium</button>
+      <button class="tab-btn" data-diff="hard">Hard</button>
+    </div>
+    <div id="leaderboardList" class="leaderboard-list">
+      <p>Loading...</p>
+    </div>
+    <button class="primary" onclick="closeLeaderboard()">Close</button>
+  </div>
+</div>
+
+<script type="module" src="script.js"></script>
+</body>
+</html>
+
