@@ -2,7 +2,6 @@ import { Game } from './game/Game';
 
 const game = new Game();
 
-// Expose to window for HTML onclick handlers
 declare global {
   interface Window {
     restartGame: () => void;
@@ -14,6 +13,7 @@ declare global {
     closeLeaderboard: () => void;
     submitScore: () => void;
     closeNameModal: () => void;
+    toggleSound: () => void;
   }
 }
 
@@ -26,5 +26,6 @@ window.showLeaderboard = () => game.showLeaderboardHandler();
 window.closeLeaderboard = () => game.closeLeaderboard();
 window.submitScore = () => game.submitScoreHandler();
 window.closeNameModal = () => game.closeNameModal();
+window.toggleSound = () => game.toggleSound();
 
 document.getElementById('difficulty')?.addEventListener('change', () => game.restart());

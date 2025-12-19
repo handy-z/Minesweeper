@@ -402,3 +402,25 @@ button.icon-btn:disabled {
   border: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1);
 }
+
+/* GitHub Link */
+.github-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+}
+
+.github-link:hover {
+  color: var(--text-main);
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.github-link svg {
+  width: 24px;
+  height: 24px;
+}

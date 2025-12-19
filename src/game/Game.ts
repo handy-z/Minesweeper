@@ -1,7 +1,9 @@
-import { Cell } from './Cell';
-import { DIFFICULTY_LEVELS, HINTS_PER_GAME } from './constants';
-import type { CustomConfig, DifficultyKey, PendingScore } from '../types';
-import { fetchLeaderboard, submitScore } from '../firebase/leaderboard';
+import { Cell } from "./Cell";
+import { DIFFICULTY_LEVELS, HINTS_PER_GAME } from "./constants";
+import type { CustomConfig, DifficultyKey, PendingScore } from "../types";
+import { fetchLeaderboard, submitScore } from "../firebase/leaderboard";
+
+import { SoundManager } from "./SoundManager";
 
 export class Game {
   private levels = DIFFICULTY_LEVELS;
@@ -11,12 +13,17 @@ export class Game {
   private timerEl: HTMLElement;
   private diffSelect: HTMLSelectElement;
   private customModal: HTMLElement;
-  private customInputs: { r: HTMLInputElement; c: HTMLInputElement; m: HTMLInputElement };
+  private customInputs: {
+    r: HTMLInputElement;
+    c: HTMLInputElement;
+    m: HTMLInputElement;
+  };
   private overlay: HTMLElement;
   private modal: HTMLElement;
   private modalTitle: HTMLElement;
   private modalText: HTMLElement;
   private bestEl: HTMLElement;
+  private soundBtn: HTMLButtonElement;
 
   private grid: Cell[][] = [];
   private R: number = 9;
@@ -29,29 +36,34 @@ export class Game {
   private time: number = 0;
   private timerInterval?: ReturnType<typeof setInterval>;
   private startTime: number = 0;
-  private currentDiff: DifficultyKey = 'easy';
+  private currentDiff: DifficultyKey = "easy";
   private customConfig: CustomConfig | null = null;
   private isLeftDown: boolean = false;
   private isRightDown: boolean = false;
+  private soundManager: SoundManager;
 
   constructor() {
-    this.gridEl = document.getElementById('grid') as HTMLDivElement;
-    this.gridEl.addEventListener('contextmenu', (e) => e.preventDefault());
-    this.mineEl = document.getElementById('mineCount')!;
-    this.hintEl = document.getElementById('hintBtn') as HTMLButtonElement;
-    this.timerEl = document.getElementById('timer')!;
-    this.diffSelect = document.getElementById('difficulty') as HTMLSelectElement;
-    this.customModal = document.getElementById('customModalOverlay')!;
+    this.soundManager = new SoundManager();
+    this.gridEl = document.getElementById("grid") as HTMLDivElement;
+    this.gridEl.addEventListener("contextmenu", (e) => e.preventDefault());
+    this.mineEl = document.getElementById("mineCount")!;
+    this.hintEl = document.getElementById("hintBtn") as HTMLButtonElement;
+    this.timerEl = document.getElementById("timer")!;
+    this.diffSelect = document.getElementById(
+      "difficulty"
+    ) as HTMLSelectElement;
+    this.customModal = document.getElementById("customModalOverlay")!;
     this.customInputs = {
-      r: document.getElementById('customR') as HTMLInputElement,
-      c: document.getElementById('customC') as HTMLInputElement,
-      m: document.getElementById('customM') as HTMLInputElement,
+      r: document.getElementById("customR") as HTMLInputElement,
+      c: document.getElementById("customC") as HTMLInputElement,
+      m: document.getElementById("customM") as HTMLInputElement,
     };
-    this.overlay = document.getElementById('overlay')!;
-    this.modal = this.overlay.querySelector('.modal')!;
-    this.modalTitle = document.getElementById('modalTitle')!;
-    this.modalText = document.getElementById('modalText')!;
-    this.bestEl = document.getElementById('best')!;
+    this.overlay = document.getElementById("overlay")!;
+    this.modal = this.overlay.querySelector(".modal")!;
+    this.modalTitle = document.getElementById("modalTitle")!;
+    this.modalText = document.getElementById("modalText")!;
+    this.bestEl = document.getElementById("best")!;
+    this.soundBtn = document.getElementById("soundBtn") as HTMLButtonElement;
 
     this.loadTheme();
     this.updateBest();
@@ -59,57 +71,72 @@ export class Game {
     this.setupGlobalEvents();
   }
 
+  toggleSound(): void {
+    const enabled = this.soundManager.toggle();
+    this.soundBtn.innerText = enabled ? "🔊" : "🔇";
+  }
+
   private setupGlobalEvents(): void {
-    document.addEventListener('mousedown', (e) => {
+    document.addEventListener("mousedown", (e) => {
       if (e.button === 0) this.isLeftDown = true;
       if (e.button === 2) this.isRightDown = true;
     });
 
-    document.addEventListener('mouseup', () => {
+    document.addEventListener("mouseup", () => {
       this.isLeftDown = false;
       this.isRightDown = false;
     });
 
-    document.addEventListener('keydown', (e) => {
-      if ((e.target as HTMLElement).tagName === 'INPUT') return;
+    document.addEventListener("keydown", (e) => {
+      if ((e.target as HTMLElement).tagName === "INPUT") return;
       switch (e.key.toLowerCase()) {
-        case 'r': this.restart(); break;
-        case 'h': this.useHint(); break;
-        case 't': this.handleTheme(); break;
+        case "r":
+          this.restart();
+          break;
+        case "h":
+          this.useHint();
+          break;
+        case "t":
+          this.handleTheme();
+          break;
+        case "m":
+          this.toggleSound();
+          break;
       }
     });
   }
 
   private loadTheme(): void {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      document.body.classList.add('dark');
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark" || !savedTheme) {
+      document.body.classList.add("dark");
+      if (!savedTheme) localStorage.setItem("theme", "dark");
     }
   }
 
   handleTheme(): void {
-    document.body.classList.toggle('dark');
-    const isDark = document.body.classList.contains('dark');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    document.body.classList.toggle("dark");
+    const isDark = document.body.classList.contains("dark");
+    localStorage.setItem("theme", isDark ? "dark" : "light");
   }
 
   restart(): void {
     this.stopTimer();
-    this.overlay.style.display = 'none';
-    this.overlay.classList.remove('visible');
-    this.modal.classList.remove('win', 'lose');
+    this.overlay.style.display = "none";
+    this.overlay.classList.remove("visible");
+    this.modal.classList.remove("win", "lose");
 
     this.started = false;
     this.gameOver = false;
     this.time = 0;
-    this.timerEl.innerText = '00:00';
+    this.timerEl.innerText = "00:00";
 
     const diff = this.diffSelect.value as DifficultyKey;
 
-    if (diff === 'custom') {
+    if (diff === "custom") {
       if (!this.customConfig) {
-        this.customModal.classList.add('visible');
-        this.customModal.style.display = 'flex';
+        this.customModal.classList.add("visible");
+        this.customModal.style.display = "flex";
         return;
       }
       this.R = this.customConfig.r;
@@ -130,18 +157,18 @@ export class Game {
     this.updateHintCount();
 
     this.grid = [];
-    this.gridEl.innerHTML = '';
+    this.gridEl.innerHTML = "";
     this.gridEl.style.gridTemplateColumns = `repeat(${this.C}, auto)`;
 
     for (let r = 0; r < this.R; r++) {
       this.grid[r] = [];
       for (let c = 0; c < this.C; c++) {
-        const el = document.createElement('div');
-        el.className = 'cell';
+        const el = document.createElement("div");
+        el.className = "cell";
 
         const cell = new Cell(r, c, el);
 
-        el.addEventListener('mousedown', (e) => {
+        el.addEventListener("mousedown", (e) => {
           if (e.button === 0) {
             this.handleClick(cell);
           } else if (e.button === 2) {
@@ -150,7 +177,7 @@ export class Game {
           }
         });
 
-        el.addEventListener('mouseenter', () => {
+        el.addEventListener("mouseenter", () => {
           if (this.isLeftDown) {
             this.handleClick(cell);
           } else if (this.isRightDown) {
@@ -161,12 +188,12 @@ export class Game {
         });
 
         let pressTimer: ReturnType<typeof setTimeout>;
-        el.addEventListener('touchstart', () => {
+        el.addEventListener("touchstart", () => {
           pressTimer = setTimeout(() => this.toggleFlag(cell), 500);
         });
-        el.addEventListener('touchend', () => clearTimeout(pressTimer));
+        el.addEventListener("touchend", () => clearTimeout(pressTimer));
 
-        el.addEventListener('dblclick', () => this.tryChord(cell));
+        el.addEventListener("dblclick", () => this.tryChord(cell));
 
         this.gridEl.appendChild(el);
         this.grid[r][c] = cell;
@@ -199,12 +226,13 @@ export class Game {
     }
 
     if (safeCells.length > 0) {
-      const randomCell = safeCells[Math.floor(Math.random() * safeCells.length)];
+      const randomCell =
+        safeCells[Math.floor(Math.random() * safeCells.length)];
       this.reveal(randomCell);
-      randomCell.el.style.transition = 'background-color 0.5s';
-      randomCell.el.style.backgroundColor = '#fbbf24';
+      randomCell.el.style.transition = "background-color 0.5s";
+      randomCell.el.style.backgroundColor = "#fbbf24";
       setTimeout(() => {
-        randomCell.el.style.backgroundColor = '';
+        randomCell.el.style.backgroundColor = "";
       }, 500);
 
       this.hints--;
@@ -219,19 +247,19 @@ export class Game {
 
     if (r < 5 || c < 5 || m < 1) return;
     if (m >= r * c) {
-      alert('Too many mines!');
+      alert("Too many mines!");
       return;
     }
 
     this.customConfig = { r, c, m };
-    this.customModal.style.display = 'none';
-    this.customModal.classList.remove('visible');
+    this.customModal.style.display = "none";
+    this.customModal.classList.remove("visible");
     this.restart();
   }
 
   cancelCustom(): void {
-    this.customModal.style.display = 'none';
-    this.customModal.classList.remove('visible');
+    this.customModal.style.display = "none";
+    this.customModal.classList.remove("visible");
     this.diffSelect.value = this.currentDiff;
     this.restart();
   }
@@ -241,8 +269,10 @@ export class Game {
     this.timerInterval = setInterval(() => {
       const delta = Math.floor((Date.now() - this.startTime) / 1000);
       this.time = delta;
-      const m = Math.floor(delta / 60).toString().padStart(2, '0');
-      const s = (delta % 60).toString().padStart(2, '0');
+      const m = Math.floor(delta / 60)
+        .toString()
+        .padStart(2, "0");
+      const s = (delta % 60).toString().padStart(2, "0");
       this.timerEl.innerText = `${m}:${s}`;
     }, 1000);
   }
@@ -286,24 +316,26 @@ export class Game {
     }
 
     this.reveal(cell);
+    this.soundManager.playClick();
   }
 
   private toggleFlag(cell: Cell): void {
     if (this.gameOver || cell.revealed || !this.started) return;
 
     cell.flagged = !cell.flagged;
-    cell.el.classList.toggle('flagged');
-    cell.el.textContent = cell.flagged ? '🚩' : '';
+    cell.el.classList.toggle("flagged");
+    cell.el.textContent = cell.flagged ? "🚩" : "";
 
     this.flags += cell.flagged ? 1 : -1;
     this.updateMineCount();
+    this.soundManager.playFlag();
   }
 
   private reveal(cell: Cell): void {
     if (cell.revealed || cell.flagged) return;
 
     cell.revealed = true;
-    cell.el.classList.add('revealed');
+    cell.el.classList.add("revealed");
 
     if (cell.mine) {
       this.endGame(false, cell);
@@ -371,33 +403,39 @@ export class Game {
     this.gameOver = true;
     this.stopTimer();
 
+    if (win) {
+      this.soundManager.playWin();
+    } else {
+      this.soundManager.playExplosion();
+    }
+
     this.grid.flat().forEach((c) => {
       if (c.mine) {
         if (win) {
-          c.el.textContent = '🚩';
-          c.el.classList.add('flagged');
+          c.el.textContent = "🚩";
+          c.el.classList.add("flagged");
         } else {
           if (!c.revealed) {
-            c.el.textContent = '💣';
-            c.el.classList.add('mine');
+            c.el.textContent = "💣";
+            c.el.classList.add("mine");
           }
           if (c === triggerCell) {
-            c.el.classList.add('mine-trigger');
+            c.el.classList.add("mine-trigger");
           }
         }
       } else if (c.flagged) {
-        c.el.classList.add('wrong-flag');
+        c.el.classList.add("wrong-flag");
       }
     });
 
     if (win) {
       const currentDiff = this.diffSelect.value;
-      const savedBest = localStorage.getItem('best-' + currentDiff);
+      const savedBest = localStorage.getItem("best-" + currentDiff);
       if (!savedBest || this.time < parseInt(savedBest)) {
-        localStorage.setItem('best-' + currentDiff, this.time.toString());
+        localStorage.setItem("best-" + currentDiff, this.time.toString());
       }
 
-      if (['easy', 'medium', 'hard'].includes(currentDiff)) {
+      if (["easy", "medium", "hard"].includes(currentDiff)) {
         this.showNameModal();
       } else {
         this.showModal(true);
@@ -410,34 +448,34 @@ export class Game {
   }
 
   private showModal(win: boolean): void {
-    this.modalTitle.textContent = win ? 'You Won! 🎉' : 'Game Over 💥';
+    this.modalTitle.textContent = win ? "You Won! 🎉" : "Game Over 💥";
     this.modalText.textContent = win
       ? `Completed in ${this.timerEl.innerText}`
-      : 'Better luck next time!';
+      : "Better luck next time!";
 
-    this.modal.className = `modal ${win ? 'win' : 'lose'}`;
-    this.overlay.style.display = 'flex';
+    this.modal.className = `modal ${win ? "win" : "lose"}`;
+    this.overlay.style.display = "flex";
     this.overlay.offsetHeight;
-    this.overlay.classList.add('visible');
+    this.overlay.classList.add("visible");
   }
 
   private showNameModal(): void {
-    const overlay = document.getElementById('nameModalOverlay')!;
-    overlay.style.display = 'flex';
-    overlay.classList.add('visible');
-    const input = document.getElementById('playerName') as HTMLInputElement;
-    input.value = localStorage.getItem('playerName') || '';
+    const overlay = document.getElementById("nameModalOverlay")!;
+    overlay.style.display = "flex";
+    overlay.classList.add("visible");
+    const input = document.getElementById("playerName") as HTMLInputElement;
+    input.value = localStorage.getItem("playerName") || "";
     input.focus();
   }
 
   submitScoreHandler(): void {
-    const nameInput = document.getElementById('playerName') as HTMLInputElement;
-    const name = nameInput.value.trim() || 'Anonymous';
-    localStorage.setItem('playerName', name);
+    const nameInput = document.getElementById("playerName") as HTMLInputElement;
+    const name = nameInput.value.trim() || "Anonymous";
+    localStorage.setItem("playerName", name);
 
     const pendingScore: PendingScore = {
       time: this.time,
-      difficulty: this.diffSelect.value
+      difficulty: this.diffSelect.value,
     };
 
     submitScore(pendingScore, name, () => {
@@ -448,35 +486,37 @@ export class Game {
   }
 
   closeNameModal(): void {
-    const overlay = document.getElementById('nameModalOverlay')!;
-    overlay.style.display = 'none';
-    overlay.classList.remove('visible');
+    const overlay = document.getElementById("nameModalOverlay")!;
+    overlay.style.display = "none";
+    overlay.classList.remove("visible");
   }
 
   showLeaderboardHandler(): void {
-    const overlay = document.getElementById('leaderboardOverlay')!;
-    overlay.style.display = 'flex';
-    overlay.classList.add('visible');
-    fetchLeaderboard('easy');
+    const overlay = document.getElementById("leaderboardOverlay")!;
+    overlay.style.display = "flex";
+    overlay.classList.add("visible");
+    fetchLeaderboard("easy");
 
-    document.querySelectorAll('.tab-btn').forEach(btn => {
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
       (btn as HTMLElement).onclick = () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        fetchLeaderboard((btn as HTMLElement).dataset.diff || 'easy');
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        fetchLeaderboard((btn as HTMLElement).dataset.diff || "easy");
       };
     });
   }
 
   closeLeaderboard(): void {
-    const overlay = document.getElementById('leaderboardOverlay')!;
-    overlay.style.display = 'none';
-    overlay.classList.remove('visible');
+    const overlay = document.getElementById("leaderboardOverlay")!;
+    overlay.style.display = "none";
+    overlay.classList.remove("visible");
   }
 
   private updateBest(): void {
     const diff = this.diffSelect.value;
-    const best = localStorage.getItem('best-' + diff);
-    this.bestEl.textContent = best ? `🏆 Best: ${best}s` : '';
+    const best = localStorage.getItem("best-" + diff);
+    this.bestEl.textContent = best ? `🏆 Best: ${best}s` : "";
   }
 }
