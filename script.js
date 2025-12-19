@@ -313,7 +313,7 @@ class Game {
   }
 
   toggleFlag(cell) {
-    if (this.gameOver || cell.revealed) return;
+    if (this.gameOver || cell.revealed || !this.started) return;
 
     cell.flagged = !cell.flagged;
     cell.el.classList.toggle("flagged");
