@@ -44,10 +44,11 @@ export class Game {
   private soundManager: SoundManager;
   private flagMode: boolean = false;
 
+  private themeBtn: HTMLButtonElement;
+
   constructor() {
     this.soundManager = new SoundManager();
     this.gridEl = document.getElementById("grid") as HTMLDivElement;
-    this.gridEl.addEventListener("contextmenu", (e) => e.preventDefault());
     this.mineEl = document.getElementById("mineCount")!;
     this.hintEl = document.getElementById("hintBtn") as HTMLButtonElement;
     this.timerEl = document.getElementById("timer")!;
@@ -67,6 +68,7 @@ export class Game {
     this.bestEl = document.getElementById("best")!;
     this.soundBtn = document.getElementById("soundBtn") as HTMLButtonElement;
     this.flagBtn = document.getElementById("flagBtn") as HTMLButtonElement;
+    this.themeBtn = document.getElementById("themeBtn") as HTMLButtonElement;
 
     this.loadTheme();
     this.updateBest();
@@ -76,7 +78,7 @@ export class Game {
 
   toggleSound(): void {
     const enabled = this.soundManager.toggle();
-    this.soundBtn.innerText = enabled ? '🔊' : '🔇';
+    this.soundBtn.innerText = enabled ? "🔊" : "🔇";
   }
 
   toggleFlagMode(): void {
@@ -90,6 +92,8 @@ export class Game {
       if (e.button === 0) this.isLeftDown = true;
       if (e.button === 2) this.isRightDown = true;
     });
+
+    document.addEventListener("contextmenu", (e) => e.preventDefault());
 
     document.addEventListener("mouseup", () => {
       this.isLeftDown = false;
@@ -121,12 +125,19 @@ export class Game {
       document.body.classList.add("dark");
       if (!savedTheme) localStorage.setItem("theme", "dark");
     }
+    this.updateThemeBtn();
   }
 
   handleTheme(): void {
     document.body.classList.toggle("dark");
     const isDark = document.body.classList.contains("dark");
     localStorage.setItem("theme", isDark ? "dark" : "light");
+    this.updateThemeBtn();
+  }
+
+  private updateThemeBtn(): void {
+    const isDark = document.body.classList.contains("dark");
+    this.themeBtn.innerText = isDark ? "White 🌕" : "Dark 🌑";
   }
 
   restart(): void {
@@ -207,13 +218,13 @@ export class Game {
           "touchstart",
           (e) => {
             if (this.flagMode) {
-              e.preventDefault(); // Prevent ghost mouse clicks
+              e.preventDefault();
               this.toggleFlag(cell);
               return;
             }
             pressTimer = setTimeout(() => {
               this.toggleFlag(cell);
-              navigator.vibrate?.(50); // Haptic feedback
+              navigator.vibrate?.(50);
             }, 500);
           },
           { passive: false }
@@ -222,13 +233,7 @@ export class Game {
         el.addEventListener("touchend", (e) => {
           clearTimeout(pressTimer);
           if (this.flagMode) return;
-          // If no scroll/move happened and valid tap
-          // Note: simple implementation, relying on standard click for normal reveal
-          // or could implement custom tap logic if needed.
-          // For now, let's keep the standard click firing after touchend unless we prevented default.
         });
-
-        el.addEventListener("dblclick", () => this.tryChord(cell));
 
         this.gridEl.appendChild(el);
         this.grid[r][c] = cell;
@@ -434,34 +439,17 @@ export class Game {
     }
   }
 
-  private endGame(win: boolean, triggerCell?: Cell): void {
+  private async endGame(win: boolean, triggerCell?: Cell): Promise<void> {
     this.gameOver = true;
     this.stopTimer();
 
     if (win) {
       this.soundManager.playWin();
+      await this.flagMinesCascade();
     } else {
       this.soundManager.playExplosion();
+      await this.revealMinesCascade(triggerCell);
     }
-
-    this.grid.flat().forEach((c) => {
-      if (c.mine) {
-        if (win) {
-          c.el.textContent = "🚩";
-          c.el.classList.add("flagged");
-        } else {
-          if (!c.revealed) {
-            c.el.textContent = "💣";
-            c.el.classList.add("mine");
-          }
-          if (c === triggerCell) {
-            c.el.classList.add("mine-trigger");
-          }
-        }
-      } else if (c.flagged) {
-        c.el.classList.add("wrong-flag");
-      }
-    });
 
     if (win) {
       const currentDiff = this.diffSelect.value;
@@ -470,11 +458,20 @@ export class Game {
         localStorage.setItem("best-" + currentDiff, this.time.toString());
       }
 
+      let submittedName: string | undefined;
+
       if (["easy", "medium", "hard"].includes(currentDiff)) {
-        this.showNameModal();
-      } else {
-        this.showModal(true);
+        const savedName = localStorage.getItem("playerName");
+        if (savedName) {
+          this.autoSubmitScore(savedName);
+          submittedName = savedName;
+        } else {
+          this.showNameModal();
+          return;
+        }
       }
+      
+      this.showModal(true, submittedName);
     } else {
       this.showModal(false);
     }
@@ -482,11 +479,72 @@ export class Game {
     this.updateBest();
   }
 
-  private showModal(win: boolean): void {
+  private autoSubmitScore(name: string): void {
+    const pendingScore: PendingScore = {
+      time: this.time,
+      difficulty: this.diffSelect.value,
+    };
+
+    submitScore(pendingScore, name, () => {
+      // Score submitted silently
+    });
+  }
+
+  private async revealMinesCascade(triggerCell?: Cell): Promise<void> {
+    if (triggerCell) {
+      triggerCell.el.classList.add("mine", "mine-trigger", "pop");
+      triggerCell.el.textContent = "💣";
+    }
+
+    const mines = this.grid
+      .flat()
+      .filter((c) => c.mine && c !== triggerCell && !c.flagged);
+    const wrongFlags = this.grid.flat().filter((c) => !c.mine && c.flagged);
+
+    // Reveal other mines
+    if (mines.length > 0) {
+      const delay = Math.min(50, 1000 / mines.length);
+      for (const cell of mines) {
+        await new Promise((r) => setTimeout(r, delay));
+        cell.el.classList.add("mine", "pop");
+        cell.el.textContent = "💣";
+      }
+    }
+
+    wrongFlags.forEach((c) => c.el.classList.add("wrong-flag"));
+
+    await new Promise((r) => setTimeout(r, 500));
+  }
+
+  private async flagMinesCascade(): Promise<void> {
+    const unflaggedMines = this.grid.flat().filter((c) => c.mine && !c.flagged);
+
+    if (unflaggedMines.length > 0) {
+      const delay = Math.min(50, 1000 / unflaggedMines.length);
+      for (const cell of unflaggedMines) {
+        await new Promise((r) => setTimeout(r, delay));
+        cell.flagged = true;
+        cell.el.classList.add("flagged", "pop");
+        cell.el.textContent = "🚩";
+        this.soundManager.playFlag();
+      }
+    }
+
+    await new Promise((r) => setTimeout(r, 500));
+  }
+
+  private showModal(win: boolean, submittedName?: string): void {
     this.modalTitle.textContent = win ? "You Won! 🎉" : "Game Over 💥";
-    this.modalText.textContent = win
-      ? `Completed in ${this.timerEl.innerText}`
-      : "Better luck next time!";
+
+    if (win) {
+      let text = `Completed in ${this.timerEl.innerText}`;
+      if (submittedName) {
+        text += `\n(Score submitted as ${submittedName})`;
+      }
+      this.modalText.innerText = text;
+    } else {
+      this.modalText.textContent = "Better luck next time!";
+    }
 
     this.modal.className = `modal ${win ? "win" : "lose"}`;
     this.overlay.style.display = "flex";
@@ -515,8 +573,7 @@ export class Game {
 
     submitScore(pendingScore, name, () => {
       this.closeNameModal();
-      this.restart();
-      this.showLeaderboardHandler();
+      this.showModal(true, name);
     });
   }
 

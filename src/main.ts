@@ -1,4 +1,4 @@
-import { Game } from './game/Game';
+import { Game } from "./game/Game";
 
 const game = new Game();
 
@@ -30,4 +30,6 @@ window.closeNameModal = () => game.closeNameModal();
 window.toggleSound = () => game.toggleSound();
 window.toggleFlagMode = () => game.toggleFlagMode();
 
-document.getElementById('difficulty')?.addEventListener('change', () => game.restart());
+document
+  .getElementById("difficulty")
+  ?.addEventListener("change", () => game.restart());

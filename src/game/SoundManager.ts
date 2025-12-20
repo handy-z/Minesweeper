@@ -4,7 +4,6 @@ export class SoundManager {
 
   constructor() {
     try {
-      // AudioContext is initialized on first user interaction usually
       const AudioContext =
         window.AudioContext || (window as any).webkitAudioContext;
       this.ctx = new AudioContext();
@@ -110,7 +109,7 @@ export class SoundManager {
     this.initCtx();
 
     const now = this.ctx.currentTime;
-    const notes = [523.25, 659.25, 783.99, 1046.5]; // C E G C
+    const notes = [523.25, 659.25, 783.99, 1046.5];
 
     notes.forEach((freq, i) => {
       if (!this.ctx) return;
