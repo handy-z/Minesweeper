@@ -1,6 +1,6 @@
 # Minesweeper
 
-A modern, web-based implementation of the classic Minesweeper game. Built with performance and aesthetics in mind, featuring a glassmorphism UI, custom themes, and an online leaderboard.
+A modern Minesweeper game featuring glassmorphism UI, custom themes, and an online leaderboard.
 
 **Website**: [https://handy-z.github.io/Minesweeper/](https://handy-z.github.io/Minesweeper/)
 
