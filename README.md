@@ -11,7 +11,7 @@ A modern, web-based implementation of the classic Minesweeper game. Built with p
 
 ## Controls
 
-### Desktop Keyboard
+### Desktop Mouse / Keyboard
 - **Left Click**/**Drag Left Click**: Reveal a cell.
 - **Right Click**/**Drag Right Click**: Flag a cell.
 - **R**: Restart Game
