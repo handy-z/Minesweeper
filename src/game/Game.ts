@@ -606,6 +606,11 @@ export class Game {
     overlay.classList.remove("visible");
   }
 
+  closeModal(): void {
+    this.overlay.style.display = "none";
+    this.overlay.classList.remove("visible");
+  }
+
   private updateBest(): void {
     const diff = this.diffSelect.value;
     const best = localStorage.getItem("best-" + diff);

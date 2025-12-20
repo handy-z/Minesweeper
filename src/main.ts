@@ -13,6 +13,7 @@ declare global {
     closeLeaderboard: () => void;
     submitScore: () => void;
     closeNameModal: () => void;
+    closeModal: () => void;
     toggleSound: () => void;
     toggleFlagMode: () => void;
   }
@@ -27,6 +28,7 @@ window.showLeaderboard = () => game.showLeaderboardHandler();
 window.closeLeaderboard = () => game.closeLeaderboard();
 window.submitScore = () => game.submitScoreHandler();
 window.closeNameModal = () => game.closeNameModal();
+window.closeModal = () => game.closeModal();
 window.toggleSound = () => game.toggleSound();
 window.toggleFlagMode = () => game.toggleFlagMode();
 

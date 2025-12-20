@@ -13010,6 +13010,10 @@ class Game {
     overlay.style.display = "none";
     overlay.classList.remove("visible");
   }
+  closeModal() {
+    this.overlay.style.display = "none";
+    this.overlay.classList.remove("visible");
+  }
   updateBest() {
     const diff = this.diffSelect.value;
     const best = localStorage.getItem("best-" + diff);
@@ -13028,6 +13032,7 @@ window.showLeaderboard = () => game.showLeaderboardHandler();
 window.closeLeaderboard = () => game.closeLeaderboard();
 window.submitScore = () => game.submitScoreHandler();
 window.closeNameModal = () => game.closeNameModal();
+window.closeModal = () => game.closeModal();
 window.toggleSound = () => game.toggleSound();
 window.toggleFlagMode = () => game.toggleFlagMode();
 document.getElementById("difficulty")?.addEventListener("change", () => game.restart());

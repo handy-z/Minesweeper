@@ -435,6 +435,28 @@ body.dark .pill-btn:hover {
   max-width: 90%;
   width: 320px;
   border: 1px solid rgba(255,255,255,0.4);
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 1.2rem;
+  opacity: 0.6;
+}
+
+.modal-close:hover {
+  background: rgba(0,0,0,0.05); /* Subtle hover */
+  opacity: 1;
+}
+
+body.dark .modal-close:hover {
+  background: rgba(255,255,255,0.1);
 }
 
 .overlay.visible .modal {
